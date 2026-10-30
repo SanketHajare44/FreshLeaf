@@ -3,18 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { Order } from "../types";
 import { dummyDashboardOrdersData } from "../data/assets";
 import Loading from "../components/Loading";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, MapPinIcon, PhoneIcon } from "lucide-react";
+import OrderOTP from "../components/OrderOTP";
+import LiveMap from "../components/LiveMap";
+import OrderTimeLine from "../components/OrderTimeLine";
 
 const OrderTracking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [liveLocation, setLiveLocation] = useState<{
+  const [liveLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
+
+  const currency = import.meta.env.VITE_CURRENCY_SYMBOL;
 
   useEffect(() => {
     setOrder(dummyDashboardOrdersData.find((o) => o._id === id) as any);
@@ -58,6 +62,130 @@ const OrderTracking = () => {
           >
             {order!.status}
           </span>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-3">
+          {/* Left side  - Time Line + Area  */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* OTP Card  */}
+            <OrderOTP order={order} />
+
+            {/* Right Side -  Order Details  */}
+            <LiveMap order={order} liveLocation={liveLocation} />
+
+            {/* Progr Timeline  */}
+            <OrderTimeLine order={order} />
+
+            {/* Delivery Person  */}
+            {order?.deliveryPartner &&
+              order.status != "Delivered" &&
+              order.status !== "Cancelled" && (
+                <div className="bg-white rounded-2xl p5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="size-11 rounded-full bg-app-green flex-center">
+                      <span className="text-white font-semibold text-sm">
+                        {order.deliveryPartner.name.charAt(0)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-app-green">
+                        {order.deliveryPartner.name}
+                      </p>
+                      <p className="text-xs text-app-text-light capitalize">
+                        {order.deliveryPartner.vehicleType} Delivery Partner
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={`tel:${order.deliveryPartner.phone}`}
+                    className="p-2.5 bg-app-cream rounded-xl hover:bg-app-cream-dark transition-colors"
+                  >
+                    <PhoneIcon className="size-4 text-app-green" />
+                  </a>
+                </div>
+              )}
+          </div>
+
+          {/* Right side - order details  */}
+          <div className="space-y-5">
+            {/* Delivery Address  */}
+            <div className="bg-white rounded-2xl p-5">
+              <h3 className="text-sm font-semibold text-app-green mb-3 flex items-center gap-2">
+                <MapPinIcon className="size-4" />
+                Delivery Address
+              </h3>
+              <p>
+                {order?.shippingAddress.label}
+                <br />
+                {order?.shippingAddress.address}
+                <br />
+                {order.shippingAddress.city}, {order?.shippingAddress.state}
+                {order?.shippingAddress.state}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5">
+              <h3 className="text-sm font-semibold text-app-green mb-3">
+                Items({order?.items.length})
+              </h3>
+
+              <div className="space-y-3">
+                {order?.items.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="size-10 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p>{item.name}</p>
+                      <p>x{item.quantity}</p>
+                    </div>
+                    <span>
+                      {currency}
+                      {(item.price * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-3 border-t border-app-border space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-app-text-light">Subtotal</span>
+                  <span>
+                    {currency}
+                    {order?.subtotal.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-app-text-light">Delivery</span>
+                  <span>
+                    {order?.deliveryFee === 0
+                      ? "Free : "
+                      : `${currency}${order.deliveryFee.toFixed(2)}`}
+                    {currency}
+                    {order?.deliveryFee.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-app-text-light">Tax</span>
+                  <span>
+                    {currency}
+                    {order?.tax.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between pt-2 border-t border-app-border font-semibold text-app-green">
+                  <span className="text-app-text-light">Total</span>
+                  <span>
+                    {currency}
+                    {order?.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -6,7 +6,6 @@ import {
   PlusIcon,
   ShoppingBagIcon,
   Trash2Icon,
-  TrashIcon,
   XIcon,
 } from "lucide-react";
 
@@ -27,7 +26,7 @@ const CartSideBar = () => {
   if (!isCartOpen) return null;
 
   const deliveryFee = cartTotal > 20 ? 0 : 1.99;
-  const grandTotal = cartTotal + deliveryFee;
+  // const grandTotal = cartTotal + deliveryFee;
 
   return (
     <>

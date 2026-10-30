@@ -1,51 +1,155 @@
+# ==========================================
 # Dependencies
+# ==========================================
 node_modules/
 **/node_modules/
 
-# Environment variables
+# ==========================================
+# Environment Variables and Secrets
+# ==========================================
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
 
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ==========================================
 # Logs
+# ==========================================
 *.log
 logs/
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# React build files
+# ==========================================
+# Frontend: React + Vite
+# ==========================================
 client/dist/
 client/build/
+client/.vite/
+client/coverage/
 
-# General build files
+# ==========================================
+# Backend: Node.js + Express + TypeScript
+# ==========================================
+server/dist/
+server/build/
+server/coverage/
+server/.tsbuildinfo
+*.tsbuildinfo
+
+# ==========================================
+# General Build Output
+# ==========================================
 dist/
 build/
+out/
 
-# Cache and test coverage
+# ==========================================
+# Cache and Test Coverage
+# ==========================================
 .cache/
 .vite/
 coverage/
 .nyc_output/
+.eslintcache/
+.turbo/
 
-# IDE settings
+# ==========================================
+# Prisma
+# ==========================================
+# Generated Prisma Client (ignore only if generated
+# inside one of these directories)
+server/node_modules/.prisma/
+server/node_modules/@prisma/client/
+
+# Do not ignore prisma/schema.prisma,
+# prisma.config.ts, or migration files.
+
+# ==========================================
+# IDE and Editor Settings
+# ==========================================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Operating system files
+# ==========================================
+# Operating System Files
+# ==========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+Desktop.ini
 
-# Temporary files
+# ==========================================
+# Temporary Files
+# ==========================================
 tmp/
 temp/
 *.tmp
+*.temp
+*.bak
+*.old
 
-# Deployment
+# ==========================================
+# Deployment Platforms
+# ==========================================
 .vercel/
 .netlify/
+.render/
 
-# Local databases
+# ==========================================
+# Local Databases
+# ==========================================
 *.sqlite
 *.sqlite3
 *.db
+*.db-journal
+
+# ==========================================
+# TypeScript
+# ==========================================
+*.tsbuildinfo
+
+# ==========================================
+# Python (if used for scripts or ML features)
+# ==========================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ==========================================
+# Package Manager Debug / Local State
+# ==========================================
+.npm/
+.pnpm-store/
+
+# ==========================================
+# Local Development Files
+# ==========================================
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.Docker Desktop
+
+# ==========================================
+# OS / Tool Temporary Files
+# ==========================================
+*.orig
+*.rej

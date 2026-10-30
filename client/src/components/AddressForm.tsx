@@ -1,4 +1,4 @@
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { XIcon } from "lucide-react";
 
 interface AddressFormData {
@@ -12,7 +12,7 @@ interface AddressFormData {
 
 interface AddressFormProps {
   resetForm: () => void;
-  handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  handleSubmit: (e: React.SubmitEvent<HTMLFormElement>) => void;
   form: AddressFormData;
   setForm: Dispatch<SetStateAction<AddressFormData>>;
   editingId: string | null;

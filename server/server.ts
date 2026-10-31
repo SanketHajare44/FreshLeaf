@@ -8,9 +8,11 @@ import productRouter from "./routes/productRoutes.js";
 import uploadRouter from "./routes/uploadRoutes.js";
 import orderRouter from "./routes/orderRoutes.js";
 import addressRouter from "./routes/addressRoutes.js";
+import adminRouter from "./routes/adminRoutes.js";
 
 import { serve } from "inngest/express";
 import { inngest, functions } from "./inngest/index.js";
+import admin from "./middleware/admin.js";
 
 const app = express();
 
@@ -29,6 +31,7 @@ app.use("/api/products", productRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/addresses", addressRouter);
+app.use("/api/admin", adminRouter);
 
 app.use("/api/inngest", serve({ client: inngest, functions }));
 

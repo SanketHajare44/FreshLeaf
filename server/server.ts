@@ -13,6 +13,7 @@ import adminRouter from "./routes/adminRoutes.js";
 import { serve } from "inngest/express";
 import { inngest, functions } from "./inngest/index.js";
 import admin from "./middleware/admin.js";
+import deliveryPartnerRouter from "./routes/deliveryPartnerRoutes.js";
 
 const app = express();
 
@@ -30,10 +31,10 @@ app.use("/api/auth", authRouter);
 app.use("/api/products", productRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/inngest", serve({ client: inngest, functions }));
 app.use("/api/addresses", addressRouter);
 app.use("/api/admin", adminRouter);
-
-app.use("/api/inngest", serve({ client: inngest, functions }));
+app.use("/api/delivery", deliveryPartnerRouter);
 
 // Error handling
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {

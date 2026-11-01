@@ -114,6 +114,12 @@ export const updateAddress = async (req: Request, res: Response) => {
 
     const addressId = req.params.id;
 
+    if (typeof addressId !== "string") {
+      return res.status(400).json({
+        message: "Invalid address ID",
+      });
+    }
+
     const existingAddress = await prisma.address.findFirst({
       where: {
         id: addressId,
@@ -201,6 +207,12 @@ export const deleteAddress = async (req: Request, res: Response) => {
     }
 
     const addressId = req.params.id;
+
+    if (typeof addressId !== "string") {
+      return res.status(400).json({
+        message: "Invalid address ID",
+      });
+    }
 
     const existingAddress = await prisma.address.findFirst({
       where: {

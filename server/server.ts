@@ -38,8 +38,16 @@ app.use("/api/delivery", deliveryPartnerRouter);
 
 // Error handling
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(error);
-  res.status(500).json({ message: error.message });
+  console.error("Server Error:", error);
+
+  // If the response has already been sent, delegate to Express.
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  return res.status(error.status || error.statusCode || 500).json({
+    message: error.message || "Internal server error",
+  });
 });
 
 const startServer = async () => {

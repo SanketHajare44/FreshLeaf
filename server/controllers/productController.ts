@@ -22,43 +22,82 @@ export const getFlashDeals = async (req: Request, res: Response) => {
 
 // GET /api/products
 export const getProducts = async (req: Request, res: Response) => {
-  const { category, search, minPrice, maxPrice, sort } = req.query;
+  try {
+    const { category, search, minPrice, maxPrice, sort } = req.query;
 
-  const where: any = {};
+    // Pagination
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 8, 1), 50);
+    const skip = (page - 1) * limit;
 
-  if (category && category !== "all") {
-    where.category = category as string;
+    const where: any = {};
+
+    if (category && category !== "all") {
+      where.category = category as string;
+    }
+
+    if (search) {
+      where.name = {
+        contains: search as string,
+        mode: "insensitive",
+      };
+    }
+
+    if (minPrice || maxPrice) {
+      where.price = {};
+
+      if (minPrice) where.price.gte = Number(minPrice);
+      if (maxPrice) where.price.lte = Number(maxPrice);
+    }
+
+    const orderBy: any = {};
+
+    if (sort === "price-low") {
+      orderBy.price = "asc";
+    } else if (sort === "price-high") {
+      orderBy.price = "desc";
+    } else {
+      orderBy.createdAt = "desc";
+    }
+
+    // Fetch only the requested page of products
+    const [products, totalProducts] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    const productWithDiscount = products.map((p) => {
+      const discount =
+        p.originalPrice && p.price
+          ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+          : 0;
+
+      return { ...p, discount };
+    });
+
+    res.status(200).json({
+      products: productWithDiscount,
+      pagination: {
+        currentPage: page,
+        limit,
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / limit),
+        hasNextPage: page < Math.ceil(totalProducts / limit),
+        hasPreviousPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch products",
+    });
   }
-
-  if (search) {
-    where.name = { contains: search as string, mode: "insensitive" };
-  }
-
-  if (minPrice || maxPrice) {
-    where.price = {};
-
-    if (minPrice) where.price.gte = Number(minPrice);
-    if (maxPrice) where.price.lte = Number(maxPrice);
-  }
-
-  const orderBy: any = {};
-
-  if (sort === "price-low") orderBy.price = "asc";
-  else if (sort === "price-high") orderBy.price = "desc";
-  else orderBy.createdAt = "desc";
-
-  const products = await prisma.product.findMany({ where, orderBy });
-
-  const productWithDiscount = products.map((p) => {
-    const discount =
-      p.originalPrice && p.price
-        ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
-        : 0;
-
-    return { ...p, discount };
-  });
-
-  res.json({ products: productWithDiscount });
 };
 
 // GET /api/products/:id

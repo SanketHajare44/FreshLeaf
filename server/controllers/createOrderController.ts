@@ -9,101 +9,112 @@ import { it } from "node:test";
 // POST /api/orders
 
 export const createOrder = async (req: Request, res: Response) => {
-  const { items, shippingAddress, paymentMethod } = req.body;
+  try {
+    const { items, shippingAddress, paymentMethod } = req.body;
 
-  // Check if order items are empty
-  if (!items || items.length === 0) {
-    return res.status(400).json({ message: "No order items" });
-  }
-
-  // Look up actual price from the database
-  const productId = items.map((i: any) => i.product);
-  const products = await prisma.product.findMany({
-    where: { id: { in: productId } },
-  });
-
-  const productMap: Record<string, (typeof products)[0]> = {};
-
-  products.forEach((p: any) => (productMap[p.id] = p));
-
-  //Check if product is in stock
-  for (const item of items) {
-    const product = productMap[item.product];
-
-    if (!product || (product.stock ?? 0) < item.quantity) {
-      return res.status(404).json({ message: "Product out of stock" });
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "No order items" });
     }
-  }
 
-  const orderItems = items.map((item: any) => {
-    const dbProduct = productMap[item.product];
+    const productId = items.map((item: any) => item.product);
 
-    if (!dbProduct) throw new Error(`Product ${item.product} not found`);
-
-    return {
-      product: dbProduct.id,
-      name: dbProduct.name,
-      image: dbProduct.image,
-      price: dbProduct.price,
-      quantity: item.quantity,
-      unit: dbProduct.unit,
-    };
-  });
-
-  const subtotal = orderItems.reduce(
-    (sum: number, item: any) => sum + item.price * item.quantity,
-    0,
-  );
-
-  const deliveryFee = subtotal > 20 ? 0 : 1.99;
-
-  const tax = Math.round(subtotal * 0.08 * 100) / 100;
-
-  const total = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
-
-  const order = await prisma.order.create({
-    data: {
-      userId: req.user!.id,
-      items: orderItems,
-      shippingAddress,
-      paymentMethod,
-      subtotal,
-      deliveryFee,
-      tax,
-      total,
-      statusHistory: [
-        {
-          status: "placed",
-          note: "Order placed successfully",
-          timestamp: new Date(),
-        },
-      ],
-    },
-  });
-
-  if (paymentMethod == "card") {
-    // Stripe payment link
-  }
-
-  res.json({ order });
-
-  // Decrease stock
-  for (const item of orderItems) {
-    await prisma.product.update({
-      where: { id: item.product },
-      data: { stock: { decrement: item.quantity } },
+    const products = await prisma.product.findMany({
+      where: { id: { in: productId } },
     });
-  }
 
-  // Send stock update events for each products in the order
-  for (const item of orderItems) {
+    const productMap: Record<string, (typeof products)[0]> = {};
+
+    products.forEach((product) => {
+      productMap[product.id] = product;
+    });
+
+    for (const item of items) {
+      const product = productMap[item.product];
+
+      if (!product || (product.stock ?? 0) < item.quantity) {
+        return res.status(400).json({
+          message: "Product not found or insufficient stock",
+        });
+      }
+    }
+
+    const orderItems = items.map((item: any) => {
+      const product = productMap[item.product];
+
+      return {
+        product: product.id,
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        quantity: item.quantity,
+        unit: product.unit,
+      };
+    });
+
+    const subtotal = orderItems.reduce(
+      (sum: number, item: any) => sum + item.price * item.quantity,
+      0,
+    );
+
+    const deliveryFee = subtotal > 20 ? 0 : 1.99;
+    const tax = Math.round(subtotal * 0.08 * 100) / 100;
+    const total = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
+
+    const order = await prisma.order.create({
+      data: {
+        userId: req.user!.id,
+        items: orderItems,
+        shippingAddress,
+        paymentMethod,
+        subtotal,
+        deliveryFee,
+        tax,
+        total,
+        statusHistory: [
+          {
+            status: "placed",
+            note: "Order placed successfully",
+            timestamp: new Date(),
+          },
+        ],
+      },
+    });
+
+    // Decrease stock
+    for (const item of orderItems) {
+      await prisma.product.update({
+        where: { id: item.product },
+        data: { stock: { decrement: item.quantity } },
+      });
+    }
+
+    // Send stock update events
+    for (const item of orderItems) {
+      await inngest.send({
+        name: "inventory/stock.updated",
+        data: { productId: item.product },
+      });
+    }
+
+    // Send order placed event
     await inngest.send({
-      name: "inventory/stock.updated",
-      data: { productId: item.prodcut },
+      name: "order/placed",
+      data: { orderId: order.id },
+    });
+
+    // Return response after the awaited operations
+    return res.status(201).json({ order });
+  } catch (err) {
+    console.error("Create order error:", err);
+
+    if (res.headersSent) {
+      return;
+    }
+
+    return res.status(500).json({
+      message: "Failed to create order",
     });
   }
-
-  await inngest.send({ name: "order/placed", data: { orderId: order.id } });
 };
 
 // Get user'users orders

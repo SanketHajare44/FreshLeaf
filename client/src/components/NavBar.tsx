@@ -16,15 +16,10 @@ import {
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 const NavBar = () => {
-  // Replace this placeholder with your existing authentication state.
-  const user: any = {
-    name: "Sanket Hajare",
-    email: "sankethajare@gmail.com",
-    isAdmin: true,
-  };
-
+  const { user, logout } = useAuth();
   // Replace these placeholders with your existing cart context.
   const { cartCount, setIsCartOpen } = useCart();
 
@@ -47,7 +42,7 @@ const NavBar = () => {
   };
 
   const handleLogout = () => {
-    setUserMenuOpen(false);
+    logout();
     setMobileMenuOpen(false);
     navigate("/");
   };

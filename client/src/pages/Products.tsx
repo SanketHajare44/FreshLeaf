@@ -1,15 +1,29 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronDown, HomeIcon, SlidersHorizontal } from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 import type { Product } from "../types";
-import { dummyProducts, categoriesData } from "../data/assets";
+import { categoriesData } from "../data/assets";
 
 import ProductCard from "../components/ProductCard";
 import FilterPanel from "../components/FilterPanel";
 import Loading from "../components/Loading";
 
 const PRODUCTS_PER_PAGE = 12;
+
+interface ProductsResponse {
+  products: Product[];
+  pagination?: {
+    currentPage: number;
+    limit: number;
+    totalProducts: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,7 +45,6 @@ const Products = () => {
   const minPrice = searchParams.get("minPrice") || "";
   const maxPrice = searchParams.get("maxPrice") || "";
 
-  // Fetch and filter products whenever filters change
   useEffect(() => {
     let cancelled = false;
 
@@ -40,35 +53,63 @@ const Products = () => {
         setLoading(true);
         setError(null);
 
-        // Simulate an asynchronous request.
-        // Replace this with your API call when the backend is ready.
-        const response = await Promise.resolve(dummyProducts);
+        const baseURL = import.meta.env.VITE_BASE_URL;
+
+        if (!baseURL) {
+          throw new Error(
+            "Backend URL is missing. Configure VITE_BASE_URL in your .env file.",
+          );
+        }
+
+        const params = new URLSearchParams();
+
+        if (category && category !== "all") {
+          params.set("category", category);
+        }
+
+        if (organic) {
+          params.set("organic", organic);
+        }
+
+        if (minPrice !== "") {
+          params.set("minPrice", minPrice);
+        }
+
+        if (maxPrice !== "") {
+          params.set("maxPrice", maxPrice);
+        }
+
+        // Server-side pagination
+        params.set("page", String(page));
+        params.set("limit", String(PRODUCTS_PER_PAGE));
+
+        // Map frontend sort values to backend sort values
+        const sortMap: Record<string, string> = {
+          price_asc: "price-low",
+          price_desc: "price-high",
+          rating: "rating",
+          name: "name",
+        };
+
+        params.set("sort", sortMap[sort] || "newest");
+
+        // Fetch the requested page
+        const url = `${baseURL.replace(/\/+$/, "")}/products?${params.toString()}`;
+
+        const { data } = await axios.get<ProductsResponse>(url);
 
         if (cancelled) return;
 
-        // Apply filters
-        let filteredProducts = response.filter((product: Product) => {
-          // Category filter
-          if (category && product.category !== category) {
-            return false;
-          }
+        if (!Array.isArray(data.products)) {
+          throw new Error("Invalid response received from the server.");
+        }
 
-          // Organic filter
+        // Keep the existing client-side organic and stock filters
+        let filteredProducts = data.products.filter((product) => {
           if (organic && String(product.isOrganic) !== organic) {
             return false;
           }
 
-          // Minimum price filter
-          if (minPrice !== "" && product.price < Number(minPrice)) {
-            return false;
-          }
-
-          // Maximum price filter
-          if (maxPrice !== "" && product.price > Number(maxPrice)) {
-            return false;
-          }
-
-          // Show only products in stock
           if (product.stock <= 0) {
             return false;
           }
@@ -76,7 +117,7 @@ const Products = () => {
           return true;
         });
 
-        // Sort products
+        // Keep the existing client-side sorting behavior
         filteredProducts = [...filteredProducts].sort((a, b) => {
           switch (sort) {
             case "price_asc":
@@ -92,30 +133,35 @@ const Products = () => {
               return a.name.localeCompare(b.name);
 
             default:
-              // Keep the original order for Newest.
-              // Replace this with createdAt sorting if needed.
               return 0;
           }
         });
 
-        // Calculate total products before pagination
-        setTotalProducts(filteredProducts.length);
+        setProducts(filteredProducts);
 
-        // Apply pagination
-        const startIndex = (page - 1) * PRODUCTS_PER_PAGE;
-
-        const paginatedProducts = filteredProducts.slice(
-          startIndex,
-          startIndex + PRODUCTS_PER_PAGE,
-        );
-
-        setProducts(paginatedProducts);
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to fetch products.",
-          );
+        // Prefer the total count supplied by the backend
+        if (data.pagination) {
+          setTotalProducts(data.pagination.totalProducts);
+        } else {
+          // Fallback for APIs that have not implemented pagination metadata
+          setTotalProducts(data.products.length);
         }
+      } catch (error: unknown) {
+        if (cancelled) return;
+
+        const message = axios.isAxiosError(error)
+          ? error.response?.data?.message ||
+            error.message ||
+            "Failed to fetch products."
+          : error instanceof Error
+            ? error.message
+            : "Something went wrong while fetching products.";
+
+        setError(message);
+        setProducts([]);
+        setTotalProducts(0);
+
+        toast.error(message);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -125,7 +171,6 @@ const Products = () => {
 
     fetchProducts();
 
-    // Prevent stale updates if filters change during fetching
     return () => {
       cancelled = true;
     };
@@ -217,7 +262,7 @@ const Products = () => {
                 )}
               </div>
 
-              {/* Reusable Category and Price Filters */}
+              {/* Category and Price Filters */}
               <div className="border-t border-gray-100 pt-4">
                 <FilterPanel
                   categories={categoriesData}
@@ -315,7 +360,7 @@ const Products = () => {
                   </button>
                 </div>
 
-                {/* Reusable Category and Price Filters */}
+                {/* Category and Price Filters */}
                 <FilterPanel
                   categories={categoriesData}
                   category={category}
@@ -350,7 +395,6 @@ const Products = () => {
             {loading ? (
               <Loading />
             ) : error ? (
-              /* Error State */
               <div className="py-16 text-center">
                 <p className="mb-2 text-lg font-semibold text-red-600">
                   Unable to Load Products
@@ -367,7 +411,6 @@ const Products = () => {
                 </button>
               </div>
             ) : products.length === 0 ? (
-              /* Empty State */
               <div className="py-16 text-center">
                 <p className="mb-2 text-lg font-semibold text-app-green">
                   No Products Found
@@ -390,7 +433,7 @@ const Products = () => {
                 {/* Product Grid */}
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:gap-8">
                   {products.map((product) => (
-                    <ProductCard key={product._id} product={product} />
+                    <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
 

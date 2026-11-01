@@ -40,11 +40,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (quantity <= 0) return;
 
     setItems((prev) => {
-      const existing = prev.find((item) => item.product._id === product._id);
+      const existing = prev.find((item) => item.product.id === product.id);
 
       if (existing) {
         return prev.map((item) =>
-          item.product._id === product._id
+          item.product.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
             : item,
         );
@@ -58,7 +58,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Remove product from cart
   const removeFromCart = (productId: string) => {
-    setItems((prev) => prev.filter((item) => item.product._id !== productId));
+    setItems((prev) => prev.filter((item) => item.product.id !== productId));
   };
 
   // Update product quantity
@@ -70,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     setItems((prev) =>
       prev.map((item) =>
-        item.product._id === productId ? { ...item, quantity } : item,
+        item.product.id === productId ? { ...item, quantity } : item,
       ),
     );
   };

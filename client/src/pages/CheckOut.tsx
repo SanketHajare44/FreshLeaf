@@ -1,13 +1,15 @@
 import { ChevronRightIcon, MapPinIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { dummyAddressData } from "../data/assets";
 import type { Address } from "../types";
 import { ArrowLeft, CheckIcon, CreditCardIcon } from "lucide-react";
 import CheckoutPayment from "../components/Checkout/CheckoutPayment";
 import CheckoutReview from "../components/Checkout/CheckoutReview";
 import CheckoutAddress from "../components/Checkout/CheckoutAddress";
+import toast from "react-hot-toast";
+import api from "../../config/api";
+import { useAuth } from "../context/AuthContext";
 
 const CheckOut = () => {
   const navigate = useNavigate();
@@ -16,11 +18,11 @@ const CheckOut = () => {
   const [step, setStep] = useState("address");
   const [loading, setLoading] = useState(false);
 
-  const { items, cartTotal } = useCart();
-  const { user } = { user: { addresses: dummyAddressData } };
+  const { items, cartTotal, clearCart } = useCart();
+  const { user } = useAuth();
 
   const [address, setAddress] = useState<Address>({
-    _id: "",
+    id: "",
     label: "Home",
     address: "",
     city: "",
@@ -44,28 +46,73 @@ const CheckOut = () => {
   ];
 
   const handlePlaceOrder = async () => {
+    if (loading) return;
+
     setLoading(true);
-    navigate("/orders");
+
+    try {
+      const orderData = {
+        items: items.map((item) => ({
+          product: item.product.id,
+          quantity: item.quantity,
+        })),
+        shippingAddress: address,
+        paymentMethod,
+      };
+
+      const { data } = await api.post("/orders", orderData);
+
+      console.log("Order API response:", data);
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      const orderId = data.order?.id;
+
+      if (!orderId) {
+        console.error("Order ID missing from response:", data);
+        toast.error("Order created, but the order ID is missing.");
+        return;
+      }
+
+      clearCart();
+      toast.success("Order placed successfully!");
+      navigate(`/orders/${orderId}`);
+    } catch (error: any) {
+      console.error("Place order error:", error.response?.data || error);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to place order",
+      );
+    } finally {
+      setLoading(false);
+      scrollTo(0, 0);
+    }
   };
 
   // Populate address from user's default address
-  useState(() => {
+  useEffect(() => {
     if (user?.addresses?.length) {
       const defaultAddr =
         user.addresses.find((a) => a.isDefault) || user.addresses[0];
+
       setAddress({
-        _id: defaultAddr?._id,
-        label: defaultAddr?.label,
-        address: defaultAddr?.address,
-        city: defaultAddr?.city,
-        state: defaultAddr?.state,
-        zip: defaultAddr?.zip,
-        isDefault: defaultAddr?.isDefault,
-        lat: defaultAddr?.lat,
-        lng: 0,
+        id: defaultAddr.id,
+        label: defaultAddr.label,
+        address: defaultAddr.address,
+        city: defaultAddr.city,
+        state: defaultAddr.state,
+        zip: defaultAddr.zip,
+        isDefault: defaultAddr.isDefault,
+        lat: defaultAddr.lat ?? 0,
+        lng: defaultAddr.lng ?? 0,
       });
     }
-  });
+  }, [user]);
 
   if (items.length === 0) {
     return (
@@ -105,10 +152,15 @@ const CheckOut = () => {
             <div key={s.key} className="flex items-center gap-2">
               <button
                 onClick={() => setStep(s.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${step === s.key ? "bg-app-green text-white" : "bg-white text-app-text-light"}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  step === s.key
+                    ? "bg-app-green text-white"
+                    : "bg-white text-app-text-light"
+                }`}
               >
                 <s.icon className="size-4" /> {s.label}
               </button>
+
               {i < steps.length - 1 && (
                 <ChevronRightIcon className="size-4 text-app-text-light" />
               )}

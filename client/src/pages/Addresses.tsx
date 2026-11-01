@@ -2,14 +2,19 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import type { Address } from "../types";
-import { dummyAddressData } from "../data/assets";
 import { MapPinIcon, PlusIcon } from "lucide-react";
 import Loading from "../components/Loading";
 import AddressCard from "../components/AddressCard";
 import AddressForm from "../components/AddressForm";
+import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
+import api from "../../config/api";
 
 const Addresses = () => {
-  const [addresses, setAddresses] = useState<Address[]>(dummyAddressData);
+  const { user, updateUser } = useAuth();
+
+  const [addresses, setAddresses] = useState<Address[]>(user?.addresses ?? []);
+
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -38,57 +43,125 @@ const Addresses = () => {
     setEditingId(null);
   };
 
-  // Add or update address
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // Fetch actual addresses from the backend
+  useEffect(() => {
+    let isMounted = true;
 
-    if (editingId) {
-      // Update existing address
-      setAddresses((prevAddresses) =>
-        prevAddresses.map((addr) => {
-          if (addr._id === editingId) {
-            return {
-              ...addr,
-              ...form,
-            };
-          }
+    const fetchAddresses = async () => {
+      try {
+        const { data } = await api.get("/addresses");
 
-          // Ensure only one address is the default
-          if (form.isDefault) {
-            return {
-              ...addr,
-              isDefault: false,
-            };
-          }
+        if (!isMounted) return;
 
-          return addr;
-        }),
-      );
-    } else {
-      // Add a new address
-      const newAddress: Address = {
-        ...form,
-        _id: crypto.randomUUID(),
-        lat: 0,
-        lng: 0,
+        const fetchedAddresses: Address[] = data.addresses;
+
+        setAddresses(fetchedAddresses);
+        updateUser({ addresses: fetchedAddresses });
+      } catch (err: unknown) {
+        if (!isMounted) return;
+
+        const message =
+          err instanceof Error ? err.message : "Failed to load addresses";
+
+        toast.error(message);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAddresses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Get the user's current location
+  const getLocation = (retries = 3): Promise<{ lat: number; lng: number }> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by your browser"));
+        return;
+      }
+
+      let attemptsRemaining = retries;
+
+      const attempt = () => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          (geoError) => {
+            if (attemptsRemaining > 0) {
+              attemptsRemaining--;
+
+              window.setTimeout(attempt, 1000);
+            } else {
+              reject(
+                new Error(geoError.message || "Failed to get your location"),
+              );
+            }
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000,
+          },
+        );
       };
 
-      setAddresses((prevAddresses) => {
-        const updatedAddresses = form.isDefault
-          ? prevAddresses.map((addr) => ({
-              ...addr,
-              isDefault: false,
-            }))
-          : prevAddresses;
-
-        return [...updatedAddresses, newAddress];
-      });
-    }
-
-    resetForm();
+      attempt();
+    });
   };
 
-  // Open the form with selected address details
+  // Add or update address using the existing API
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      const coords = await getLocation();
+
+      const payload = {
+        ...form,
+        ...coords,
+      };
+
+      const { data } = editingId
+        ? await api.put(`/addresses/${editingId}`, payload)
+        : await api.post("/addresses", payload);
+
+      if (!Array.isArray(data.addresses)) {
+        throw new Error(
+          "The API response does not contain the updated addresses list",
+        );
+      }
+
+      const updatedAddresses: Address[] = data.addresses;
+
+      setAddresses(updatedAddresses);
+      updateUser({ addresses: updatedAddresses });
+
+      toast.success(
+        editingId
+          ? "Address updated successfully!"
+          : "Address added successfully!",
+      );
+
+      resetForm();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save address";
+
+      toast.error(message);
+    }
+  };
+
+  // Open the form with the selected address details
   const onEditHandler = (addr: Address) => {
     setForm({
       label: addr.label,
@@ -99,18 +172,9 @@ const Addresses = () => {
       isDefault: addr.isDefault,
     });
 
-    setEditingId(addr._id);
+    setEditingId(addr.id);
     setShowForm(true);
   };
-
-  // Hide loading indicator
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, []);
 
   return (
     <div className="min-h-screen bg-app-cream">
@@ -164,7 +228,7 @@ const Addresses = () => {
           <div className="space-y-4">
             {addresses.map((addr) => (
               <AddressCard
-                key={addr._id}
+                key={addr.id}
                 addr={addr}
                 onEditHandler={onEditHandler}
                 setAddresses={setAddresses}

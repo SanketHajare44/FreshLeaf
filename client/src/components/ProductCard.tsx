@@ -18,7 +18,7 @@ const ProductCard = ({ product }: Props) => {
       : product.price;
 
   const handleProductClick = () => {
-    navigate(`/products/${product._id}`);
+    navigate(`/products/${product.id}`);
   };
 
   const { addToCart } = useCart();

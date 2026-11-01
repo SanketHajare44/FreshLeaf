@@ -65,7 +65,7 @@ export default function AdminDeliveryPartners() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {partners.map((p) => (
             <div
-              key={p._id}
+              key={p.id}
               className="bg-white rounded-2xl border border-app-border p-5 space-y-3"
             >
               <div className="flex items-center justify-between">
@@ -99,7 +99,7 @@ export default function AdminDeliveryPartners() {
                 </p>
               </div>
               <button
-                onClick={() => toggleActive(p._id, p.isActive)}
+                onClick={() => toggleActive(p.id, p.isActive)}
                 className={`w-full py-2 text-xs font-medium rounded-lg transition-colors ${p.isActive ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
               >
                 {p.isActive ? "Deactivate" : "Activate"}

@@ -62,7 +62,7 @@ const NavBar = () => {
           className="flex shrink-0 items-center gap-2 text-[22px] font-medium"
         >
           <BikeIcon size={24} />
-          InstaCart
+          FreshLeaf
         </Link>
 
         {/* Navigation, Search and Actions */}

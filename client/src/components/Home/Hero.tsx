@@ -1,16 +1,54 @@
+import { useState } from "react";
 import { ArrowRightIcon, LeafIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { heroSectionData } from "../../data/assets";
 
 const Hero = () => {
+  const videos = [
+    "/videos/freshleaf-hero1.mp4",
+    "/videos/freshleaf-hero2.mp4",
+    "/videos/freshleaf-hero3.mp4",
+  ];
+
+  const [currentVideo, setCurrentVideo] = useState(0);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+
+  const handleVideoEnd = () => {
+    setCurrentVideo((prev) => (prev + 1) % videos.length);
+    setVideoLoaded(false);
+  };
+
   return (
     <section className="relative isolate mb-6 min-h-[400px] overflow-hidden rounded-2xl bg-[#f8f5ef] sm:mb-10 sm:min-h-[420px] sm:rounded-3xl lg:min-h-[460px]">
-      {/* Background Image */}
+      {/* Fallback Background Image */}
       <img
         src={heroSectionData.hero_image}
         alt="Fresh organic vegetables"
-        className="absolute inset-0 h-full w-full object-cover"
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+          videoLoaded && !videoError ? "opacity-0" : "opacity-100"
+        }`}
       />
+
+      {/* Background Video */}
+      {!videoError && (
+        <video
+          key={currentVideo}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          poster={heroSectionData.hero_image}
+          onCanPlay={() => setVideoLoaded(true)}
+          onEnded={handleVideoEnd}
+          onError={() => setVideoError(true)}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+            videoLoaded ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <source src={videos[currentVideo]} type="video/mp4" />
+        </video>
+      )}
 
       {/* Dark Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-app-green via-app-green/80 to-app-green/30" />

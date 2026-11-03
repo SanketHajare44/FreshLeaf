@@ -4,6 +4,8 @@ import { PlusIcon, EditIcon, XIcon } from "lucide-react";
 import type { Product } from "../../types";
 import Loading from "../../components/Loading";
 import { dummyProducts } from "../../assets/assets";
+import toast from "react-hot-toast";
+import api from "../../../config/api";
 
 export default function AdminProducts() {
   const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
@@ -12,10 +14,20 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
 
   const fetchProducts = async () => {
-    setProducts(dummyProducts);
-    setTimeout(() => {
+    try {
+      const { data } = await api.get("/products", {
+        params: {
+          page: 1,
+          limit: 50,
+        },
+      });
+
+      setProducts(data.products);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error?.message);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   useEffect(() => {
@@ -23,13 +35,39 @@ export default function AdminProducts() {
   }, []);
 
   const handleMarkOutOfStock = async (id: string, name: string) => {
+    console.log("Cross icon clicked:", { id, name });
+
     if (
       !window.confirm(
         `Are you sure you want to mark "${name}" as out of stock?`,
       )
-    )
+    ) {
+      console.log("User cancelled the operation");
       return;
-    console.log(id);
+    }
+
+    try {
+      console.log("Sending request to backend...");
+
+      const response = await api.patch(`/products/${id}/stock`);
+
+      console.log("Backend response:", response.data);
+
+      toast.success("Product marked as out of stock");
+
+      await fetchProducts();
+
+      console.log("Products refreshed successfully");
+    } catch (error: any) {
+      console.error("Failed to update product:", error);
+      console.error("Response data:", error.response?.data);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update product",
+      );
+    }
   };
 
   if (loading) return <Loading />;

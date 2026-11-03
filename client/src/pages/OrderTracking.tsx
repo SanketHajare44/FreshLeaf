@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Order } from "../types";
-import { dummyDashboardOrdersData } from "../data/assets";
 import Loading from "../components/Loading";
 import { ArrowLeftIcon, MapPinIcon, PhoneIcon } from "lucide-react";
 import OrderOTP from "../components/OrderOTP";
 import LiveMap from "../components/LiveMap";
 import OrderTimeLine from "../components/OrderTimeLine";
+import toast from "react-hot-toast";
+import api from "../../config/api";
 
 const OrderTracking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [liveLocation] = useState<{
+  const [liveLocation, setLiveLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
@@ -21,9 +22,80 @@ const OrderTracking = () => {
   const currency = import.meta.env.VITE_CURRENCY_SYMBOL;
 
   useEffect(() => {
-    setOrder(dummyDashboardOrdersData.find((o) => o.id === id) as any);
-    setLoading(false);
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    api
+      .get(`/orders/${id}`)
+      .then((res) => {
+        setOrder(res.data.order ?? res.data);
+      })
+      .catch((error) => {
+        console.error("Fetch order error:", error);
+        toast.error(error.response?.data?.message || "Failed to load order");
+        navigate("/orders");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [id, navigate]);
+
+  // Live location every 10 seconds
+
+  useEffect(() => {
+    if (!id || !order || ["Delivered", "Cancelled"].includes(order.status)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchLocation = async () => {
+      try {
+        const { data } = await api.get(`/orders/${id}/location`);
+
+        if (cancelled) return;
+
+        const location = data.liveLocation;
+
+        if (
+          location?.lat != null &&
+          location?.lng != null &&
+          location.updatedAt != null
+        ) {
+          const lat = Number(location.lat);
+          const lng = Number(location.lng);
+
+          if (
+            Number.isFinite(lat) &&
+            Number.isFinite(lng) &&
+            lat >= -90 &&
+            lat <= 90 &&
+            lng >= -180 &&
+            lng <= 180
+          ) {
+            setLiveLocation({ lat, lng });
+          }
+        }
+
+        if (data.status && data.status !== order.status) {
+          setOrder((prev) => (prev ? { ...prev, status: data.status } : prev));
+        }
+      } catch (error) {
+        console.error("Failed to fetch delivery location:", error);
+      }
+    };
+
+    fetchLocation();
+
+    const interval = window.setInterval(fetchLocation, 10000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [id, order?.status]);
 
   if (loading) return <Loading />;
   if (!order) return null;

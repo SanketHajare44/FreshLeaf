@@ -1,15 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { BikeIcon } from "lucide-react";
 import { heroSectionData } from "../../assets/assets";
+import api from "../../../config/api";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function DeliveryLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data } = await api.post("/delivery/login", {
+        email,
+        password,
+      });
+
+      localStorage.setItem("delivery_token", data.token);
+      localStorage.setItem("delivery_partner", JSON.stringify(data.partner));
+
+      toast.success("Login successful");
+      navigate("/delivery");
+    } catch (error: any) {
+      console.error("Delivery login error:", error.response?.data || error);
+
+      toast.error(
+        error.response?.data?.message || error?.message || "Login failed",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (localStorage.getItem("delivery_token")) {
+      navigate("/delivery", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex">
@@ -20,10 +53,12 @@ export default function DeliveryLogin() {
           alt=""
           className="absolute inset-0 object-cover h-full bg-center opacity-10"
         />
+
         <div className="relative text-center px-12">
           <h2 className="text-4xl font-semibold text-white mb-4">
             Delivery Partner Portal
           </h2>
+
           <p className="text-white/60 font-serif text-xl max-w-sm mx-auto">
             Manage your deliveries and keep customers happy.
           </p>
@@ -36,13 +71,16 @@ export default function DeliveryLogin() {
           <div className="text-center mb-8">
             <div className="flex-center gap-2 mb-4">
               <BikeIcon className="size-7 text-app-green" />
+
               <span className="text-2xl font-semibold text-app-green">
-                Instacart
+                FreshLeaf
               </span>
             </div>
+
             <h1 className="text-2xl font-semibold text-app-green mb-2">
               Delivery Partner Login
             </h1>
+
             <p className="text-sm text-app-text-light">
               Sign in to manage your deliveries
             </p>
@@ -56,6 +94,7 @@ export default function DeliveryLogin() {
               <label className="block text-sm font-medium text-app-green mb-1.5">
                 Email
               </label>
+
               <input
                 type="email"
                 required
@@ -65,10 +104,12 @@ export default function DeliveryLogin() {
                 placeholder="partner@example.com"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-app-green mb-1.5">
                 Password
               </label>
+
               <input
                 type="password"
                 required
@@ -78,6 +119,7 @@ export default function DeliveryLogin() {
                 placeholder="••••••••"
               />
             </div>
+
             <button
               type="submit"
               disabled={loading}

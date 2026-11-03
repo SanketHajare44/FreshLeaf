@@ -48,7 +48,7 @@ const Login = () => {
         />
         <div className="relative text-center px-12">
           <h2 className="text-4xl font-semibold text-white mb-4">
-            Welcome back to InstaCart{" "}
+            Welcome back to FreshLeaf{" "}
           </h2>
           <p className="text-white/60 font-serif text-xl max-w-sm max-auto">
             Fresh groceries and organic produce, delivered to your doorsetp.
@@ -65,7 +65,7 @@ const Login = () => {
             <Link to="/" className="inline-flex items-center gap-2 mb-6">
               <BikeIcon className="size-8 text-app-green" />
               <span className="text-app-green text-2xl font-semibold">
-                InstaCart
+                FreshLeaf
               </span>
             </Link>
             <h1 className="text-2xl text-app-green mb-2 font-semibold">

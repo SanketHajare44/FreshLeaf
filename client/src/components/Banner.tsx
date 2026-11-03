@@ -19,7 +19,7 @@ const Banner = () => {
             <div>
               <TruckIcon className="size-4 shrink-0" />
               <span className="font-medium">
-                Free delivery on orders above $20
+                Free delivery on orders above ₹89
               </span>
             </div>
 

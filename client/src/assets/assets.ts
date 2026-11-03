@@ -48,7 +48,7 @@ export const heroSectionData = {
     "Fresh, organic groceries delivered from local farms to your doorstep. Quality you can taste, convenience you deserve.",
   hero_image: hero_bg,
   hero_features: [
-    { icon: TruckIcon, title: "Free Delivery", desc: "Orders over $20" },
+    { icon: TruckIcon, title: "Free Delivery", desc: "Orders over  ₹89" },
     { icon: LeafIcon, title: "100% Organic", desc: "Certified products" },
     { icon: ClockIcon, title: "Same Day", desc: "Express delivery" },
     { icon: ShieldCheckIcon, title: "Secure Pay", desc: "Safe checkout" },
@@ -61,12 +61,12 @@ export const deliveryPartnerLoginImage =
 export const appPromoBannerData = {
   title: "Get fresh groceries in minutes",
   description:
-    "Download the Instacart app for exclusive deals, real-time tracking, and the freshest selection delivered right to your door.",
+    "Download the FreshLeaf app for exclusive deals, real-time tracking, and the freshest selection delivered right to your door.",
 };
 
 export const footerData = {
   brand: {
-    name: "Instacart",
+    name: "FreshLeaf",
     description:
       "Bringing fresh, organic groceries straight from local farms to your doorstep. Nourish your home with Earth's finest.",
     socials: [
@@ -98,13 +98,13 @@ export const footerData = {
   ],
 
   contact: [
-    { icon: MapPinIcon, text: "123 Green Valley Rd, Portland" },
+    { icon: MapPinIcon, text: "Pune , India" },
     { icon: PhoneIcon, text: "+1 (111) 123-4567" },
-    { icon: MailIcon, text: "hello@example.com" },
+    { icon: MailIcon, text: "fresh@leaf.com" },
   ],
 
   bottom: {
-    copyright: "© 2026 Greatstack. All rights reserved.",
+    copyright: "© 2026 FreashLeaf. All rights reserved.",
     links: [
       { label: "Privacy Policy", href: "#" },
       { label: "Terms of Service", href: "#" },

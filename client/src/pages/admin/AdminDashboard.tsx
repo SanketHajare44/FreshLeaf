@@ -7,7 +7,7 @@ import {
   AlertTriangleIcon,
 } from "lucide-react";
 import Loading from "../../components/Loading";
-import { dummyAdminDashboardData, statusColors } from "../../assets/assets";
+import api from "../../../config/api";
 
 interface Stats {
   totalOrders: number;
@@ -17,6 +17,16 @@ interface Stats {
   recentOrders: any[];
 }
 
+const statusColors: Record<string, string> = {
+  placed: "bg-blue-100 text-blue-700",
+  confirmed: "bg-indigo-100 text-indigo-700",
+  assigned: "bg-purple-100 text-purple-700",
+  packed: "bg-yellow-100 text-yellow-700",
+  "out for delivery": "bg-orange-100 text-orange-700",
+  delivered: "bg-green-100 text-green-700",
+  cancelled: "bg-red-100 text-red-700",
+};
+
 export default function AdminDashboard() {
   const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
 
@@ -24,10 +34,15 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      setStats(dummyAdminDashboardData);
-      setLoading(false);
-    }, 1000);
+    api
+      .get("/admin/stats")
+      .then((res) => {
+        setStats(res.data);
+      })
+      .catch((error: any) => {
+        console.error("Failed to fetch admin stats:", error);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const cards = stats
@@ -68,9 +83,7 @@ export default function AdminDashboard() {
               </p>
               <p className="text-sm text-app-text-light">{card.label}</p>
             </div>
-            <div
-              className={`size-10 rounded-xl flex-center bg-orange-50 text-orange-600`}
-            >
+            <div className="size-10 rounded-xl flex-center bg-orange-50 text-orange-600">
               <card.icon className="size-5" />
             </div>
           </div>
@@ -101,7 +114,7 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-app-border">
-              {stats?.recentOrders.length === 0 ? (
+              {(stats?.recentOrders?.length ?? 0) === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
@@ -111,7 +124,7 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               ) : (
-                stats?.recentOrders.map((order: any) => (
+                (stats?.recentOrders ?? []).map((order: any) => (
                   <tr
                     key={order.id}
                     className="hover:bg-zinc-50/50 transition-colors"
@@ -136,7 +149,10 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[order.status] || "bg-zinc-100 text-zinc-600"}`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          statusColors[order.status?.toLowerCase()] ||
+                          "bg-zinc-100 text-zinc-600"
+                        }`}
                       >
                         {order.status}
                       </span>

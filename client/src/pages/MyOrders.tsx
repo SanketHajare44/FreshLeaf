@@ -2,9 +2,11 @@ import type { Order } from "../types";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { dummyDashboardOrdersData, statusColors } from "../data/assets";
 import Loading from "../components/Loading";
 import { CalendarIcon, ChevronRightIcon, PackageIcon } from "lucide-react";
+import toast from "react-hot-toast";
+import api from "../../config/api";
+import { statusColors } from "../data/assets";
 
 const MyOrders = () => {
   const currency = import.meta.env.VITE_CURRENCY_SYMBOL || "$";
@@ -17,17 +19,21 @@ const MyOrders = () => {
 
   const { clearCart } = useCart();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setOrders(dummyDashboardOrdersData as any[]);
-      } catch (error) {
-        console.error("Failed to fetch orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrders = async () => {
+    setLoading(true);
 
+    try {
+      const params = activeTab !== "all" ? `?status=${activeTab}` : "";
+      const { data } = await api.get(`/orders${params}`);
+      setOrders(data.orders);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error?.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (searchParams.get("clearCart")) {
       clearCart();
       setSearchParams({}, { replace: true });

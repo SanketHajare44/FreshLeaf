@@ -26,7 +26,7 @@ const CartSideBar = () => {
   if (!isCartOpen) return null;
 
   const deliveryFee = cartTotal > 20 ? 0 : 1.99;
-  // const grandTotal = cartTotal + deliveryFee;
+  const grandTotal = cartTotal + deliveryFee;
 
   return (
     <>
@@ -133,7 +133,6 @@ const CartSideBar = () => {
                 {cartTotal.toFixed(2)}
               </span>
             </div>
-
             <div className="flex justify-between text-sm ">
               <span className="text-app-text-light"> Delivery</span>
               <span className="font-medium">
@@ -144,18 +143,18 @@ const CartSideBar = () => {
                 )}{" "}
               </span>
             </div>
-
             {deliveryFee > 0 && (
               <p className="text-xs text-app-text-light text-center">
                 Free delivery on orders over {currency}20!
               </p>
             )}
-
             <div className="flex justify-between text-base font-semibold border-t border-app-border pt-3">
               <span>Total</span>
-              <span>{currency}(grandTotal.toFixed(2))</span>
+              <span>
+                {currency}
+                {grandTotal.toFixed(2)}
+              </span>
             </div>
-
             <button
               onClick={() => {
                 setIsCartOpen(false);

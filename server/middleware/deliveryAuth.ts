@@ -9,13 +9,21 @@ const deliveryAuth = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "not token provided" });
+      return res.status(401).json({ message: "No token provided" });
     }
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRETE as string) as {
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      console.error("JWT_SECRET is missing from environment variables");
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
+    const decoded = jwt.verify(token, secret) as {
       id: string;
       role: string;
     };

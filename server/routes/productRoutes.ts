@@ -16,6 +16,7 @@ productRouter.get("/flash-deals", getFlashDeals);
 productRouter.get("/", getProducts);
 productRouter.get("/:id", getProduct);
 productRouter.post("/", auth, admin, createProduct);
+productRouter.patch("/:id/stock", auth, admin, deleteProduct);
 productRouter.put("/:id", auth, admin, updateProduct);
 productRouter.delete("/:id", auth, admin, deleteProduct);
 

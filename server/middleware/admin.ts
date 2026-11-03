@@ -9,27 +9,38 @@ const admin = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
 
     const adminEmails = process.env.ADMIN_EMAILS
-      ? process.env.ADMIN_EMAILS.split(",").map((e) => e.trim().toLowerCase())
+      ? process.env.ADMIN_EMAILS.split(",")
+          .map((email) => email.trim().toLowerCase())
+          .filter(Boolean)
       : [];
 
-    if (adminEmails.includes(user.email.toLowerCase())) {
-      if (req.user) req.user.isAdmin = true;
-      next();
-    } else {
-      res.status(404).json({ message: "Admin acess required" });
+    if (!adminEmails.includes(user.email.toLowerCase())) {
+      return res.status(403).json({
+        message: "Admin access required",
+      });
     }
-  } catch (err: any) {
-    console.log(err);
-    res
-      .status(500)
-      .json({ message: "Admin verification is failed", error: err.message });
+
+    if (req.user) {
+      req.user.isAdmin = true;
+    }
+
+    return next();
+  } catch (err: unknown) {
+    console.error("Admin middleware error:", err);
+
+    return res.status(500).json({
+      message: "Admin verification failed",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 };
 

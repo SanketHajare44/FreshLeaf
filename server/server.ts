@@ -14,14 +14,31 @@ import { serve } from "inngest/express";
 import { inngest, functions } from "./inngest/index.js";
 import admin from "./middleware/admin.js";
 import deliveryPartnerRouter from "./routes/deliveryPartnerRoutes.js";
+import { stripeWebhook } from "./controllers/webhooks.js";
 
 const app = express();
+
+app.post(
+  "/api/stripe",
+  express.raw({ type: "application/json" }),
+  stripeWebhook,
+);
 
 const port = Number(process.env.PORT) || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.method === "POST") {
+    console.log("Request URL:", req.originalUrl);
+    console.log("Content-Type:", req.headers["content-type"]);
+    console.log("Request body:", req.body);
+  }
+
+  next();
+});
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Server is Live!");

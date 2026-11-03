@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
-import { error, timeStamp } from "node:console";
-import { exportString } from "node:ffi";
 import { inngest } from "../inngest/index.js";
-import { it } from "node:test";
+import Stripe from "stripe";
 
 // Create Order
 // POST /api/orders
@@ -79,6 +77,54 @@ export const createOrder = async (req: Request, res: Response) => {
         ],
       },
     });
+
+    if (paymentMethod === "card") {
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({
+          message: "STRIPE_SECRET_KEY is missing",
+        });
+      }
+
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      const frontendUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
+
+      if (!frontendUrl) {
+        return res.status(500).json({
+          message: "CLIENT_URL is missing from environment variables",
+        });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+
+        line_items: [
+          {
+            price_data: {
+              currency: "inr",
+              product_data: {
+                name: "FreshLeaf Grocery Order",
+                description: `Order ID: ${order.id}`,
+              },
+              unit_amount: Math.round(total * 100),
+            },
+            quantity: 1,
+          },
+        ],
+
+        success_url: `${frontendUrl}/orders?session_id={CHECKOUT_SESSION_ID}&clearCart=true`,
+
+        cancel_url: `${frontendUrl}/checkout`,
+
+        metadata: {
+          orderId: order.id,
+        },
+      });
+
+      return res.status(200).json({
+        url: session.url,
+      });
+    }
 
     // Decrease stock
     for (const item of orderItems) {
@@ -180,7 +226,7 @@ export const updaateOrderStatus = async (req: Request, res: Response) => {
   history.push({
     status,
     note: note || `Order ${status.toLowerCase()}`,
-    timeStamp: new Date(),
+    timestamp: new Date(),
   });
 
   const updatedOrder = await prisma.order.update({

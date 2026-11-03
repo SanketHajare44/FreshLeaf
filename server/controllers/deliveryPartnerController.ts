@@ -6,10 +6,15 @@ import { permission } from "node:process";
 import { time, timeStamp } from "node:console";
 import { measureMemory } from "node:vm";
 
+// Generate JWT Token
 const generateToken = (id: string) => {
-  return jwt.sign({ id, role: "delivery" }, process.env.JWT_SECRETE as string, {
-    expiresIn: "30d",
-  });
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error("JWT_SECRET is missing from environment variables");
+  }
+
+  return jwt.sign({ id, role: "delivery" }, secret, { expiresIn: "30d" });
 };
 
 // Login Delivery Partner

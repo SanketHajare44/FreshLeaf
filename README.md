@@ -160,6 +160,12 @@ Use these demo accounts to explore each role:
 
 _Hero section, delivery highlights, and product categories._
 
+### 🛍️ Products & Flash Deals
+
+![Products](docs/screenshots/products.png)
+
+_Grocery products with prices, ratings, discount badges, and quick add-to-cart._
+
 ### 💳 Stripe Checkout (Test Mode)
 
 ![Stripe Payment](docs/screenshots/stripe-payment.png)
